@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace System
@@ -110,6 +111,38 @@ namespace System
             }
             Array.Copy(items, 0, _array, _index, items.Length);
         }
+
+        public void Set(Span<T> items)
+        {
+            Set(items._array, items._index, items._length);
+        }
+
+        public void Set(ReadOnlySpan<T> items)
+        {
+            Set(items._array, items._index, items._length);
+        }
+
+        public T[] CreateArray()
+        {
+            T[] array = new T[_length];
+            var arrayIndex = 0;
+            var start = _index;
+            var count = _length;
+            while (count > 0)
+            {
+                array[arrayIndex++] = _array[start++];
+                count--;
+            }
+            return array;
+        }
+
+        internal unsafe ByteSpan BorrowDisposableByteSpan()
+        {
+            var handle = GCHandle.Alloc(_array, GCHandleType.Pinned);
+            var pinned = handle.AddrOfPinnedObject() + _index;
+            var byteSpan = new ByteSpan(((byte*)pinned.ToPointer()), _length, handle);     
+            return byteSpan;
+        }
     }
 
     public static class SpanExtensions
@@ -117,7 +150,7 @@ namespace System
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> Slice<T>(this T[] array, int index = 0)
         {
-            return array.Slice(0, array.Length);
+            return array.Slice(index, array.Length - index);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -137,6 +170,16 @@ namespace System
         {
             var roSpan = (ReadOnlySpan<byte>)utf16;
             return CreateString(roSpan);
+        }
+
+        public static bool StartsWith(this ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
+        {
+            if (left.Length < right.Length) return false;
+            for (int index = 0; index < right.Length; index++)
+            {
+                if (left[index] != right[index]) return false;
+            }
+            return true;
         }
     }
 }

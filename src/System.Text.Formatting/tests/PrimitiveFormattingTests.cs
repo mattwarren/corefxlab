@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using System.IO;
-using System.Text.Formatting;
 using Xunit;
 
 namespace System.Text.Formatting.Tests
@@ -25,7 +24,7 @@ namespace System.Text.Formatting.Tests
         }
 
         [Fact]
-        public void Byte()
+        public void ByteBasicTests()
         {
             CheckByte(0, null, "0");
             CheckByte(1, null, "1");
@@ -86,7 +85,7 @@ namespace System.Text.Formatting.Tests
         }
 
         [Fact]
-        public void Int64()
+        public void Int64BasicTests()
         {
             CheckInt64(long.MinValue, null, "-9223372036854775808");
             CheckInt64(-10, null, "-10");
@@ -305,9 +304,43 @@ namespace System.Text.Formatting.Tests
             AssertUtf8Equal(buffer.Slice(0, (int)stream.Position), "100-100hi!");
         }
 
+        [Fact] // TODO: this should test more than ascii
+        public void FormatString()
+        {
+            var buffer = new byte[1024];
+            MemoryStream stream = new MemoryStream(buffer);
+
+            var utf8Writer = new StreamFormatter(stream, FormattingData.InvariantUtf8);
+            utf8Writer.Append("Hello");
+            utf8Writer.Append(" ");
+            utf8Writer.Append("World!");
+            utf8Writer.Append("\u0391"); // greek alpha
+            //utf8Writer.Append("\uD950\uDF21"); // TODO: surrogate pair; this is NIY
+            AssertUtf8Equal(buffer.Slice(0, (int)stream.Position), "Hello World!\u0391");
+
+            stream.Position = 0;
+            var utf16Writer = new StreamFormatter(stream, FormattingData.InvariantUtf16);
+            utf16Writer.Append("Hello");
+            utf16Writer.Append(" ");
+            utf16Writer.Append("World!");
+            utf8Writer.Append("\u0391");
+            utf16Writer.Append("\uD950\uDF21"); 
+            AssertUtf16Equal(buffer.Slice(0, (int)stream.Position), "Hello World!\u0391\uD950\uDF21");
+        }
+
         internal static void AssertUtf8Equal(Span<byte> formatted, string expected)
         {
             var expectedBytes = Encoding.UTF8.GetBytes(expected);
+            Assert.Equal(expectedBytes.Length, formatted.Length);
+            for (int index = 0; index < expected.Length; index++)
+            {
+                Assert.Equal(formatted[index], expectedBytes[index]);
+            }
+        }
+
+        internal static void AssertUtf16Equal(Span<byte> formatted, string expected)
+        {
+            var expectedBytes = Encoding.Unicode.GetBytes(expected);
             Assert.Equal(expectedBytes.Length, formatted.Length);
             for (int index = 0; index < expected.Length; index++)
             {

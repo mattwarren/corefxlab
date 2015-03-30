@@ -8,22 +8,22 @@ namespace System
     // This is a naive implementation of span. We will get a much better one later.
     public struct ReadOnlySpan<T>
     {
-        T[] _array;
-        int _index;
-        int _count;
+        internal T[] _array;
+        internal int _index;
+        internal int _length;
 
         public ReadOnlySpan(T[] array, int index, int count)
         {
             _array = array;
             _index = index;
-            _count = count;
+            _length = count;
         }
         public int Length
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return _count;
+                return _length;
             }
         }
 
@@ -37,15 +37,15 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> Slice(int index, int count)
+        public ReadOnlySpan<T> Slice(int index, int count)
         {
-            throw new NotImplementedException();
+            return new Span<T>(_array, _index + index, count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> Slice(int index)
+        public ReadOnlySpan<T> Slice(int index)
         {
-            throw new NotImplementedException();
+            return Slice(index, _length - index);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -54,12 +54,12 @@ namespace System
             return new ReadOnlySpan<T>(from, 0, from.Length);
         }
 
-        internal T[] CreateArray()
+        public T[] CreateArray()
         {
-            T[] array = new T[_count];
+            T[] array = new T[_length];
             var arrayIndex = 0;
             var start = _index;
-            var count = _count;
+            var count = _length;
             while(count > 0) {
                 array[arrayIndex++] = _array[start++];
                 count--;

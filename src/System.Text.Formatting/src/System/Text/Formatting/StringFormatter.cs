@@ -19,7 +19,7 @@ namespace System.Text.Formatting
 
         public StringFormatter(int capacity)
         {
-            _buffer = BufferPool.RentBuffer(capacity * 2);
+            _buffer = BufferPool.Shared.RentBuffer(capacity * 2);
         }
 
         public void Append(char character) {
@@ -27,14 +27,16 @@ namespace System.Text.Formatting
             _buffer[_count++] = (byte)(character >> 8);
         }
 
+        //TODO: this should use ByteSpan
         public void Append(string text)
         {
-            foreach(char character in text)
+            foreach (char character in text)
             {
                 Append(character);
             }
         }
 
+        //TODO: this should use ByteSpan
         public void Append(ReadOnlySpan<char> substring)
         {
             for (int i = 0; i < substring.Length; i++)
@@ -72,7 +74,7 @@ namespace System.Text.Formatting
 
         void IFormatter.ResizeBuffer()
         {
-            BufferPool.Enlarge(ref _buffer, _buffer.Length * 2);
+            BufferPool.Shared.Enlarge(ref _buffer, _buffer.Length * 2);
         }
         void IFormatter.CommitBytes(int bytes)
         {
