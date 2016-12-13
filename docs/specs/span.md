@@ -208,7 +208,7 @@ public struct Span<T> {
 }
 ```
 
-A prototype of such fast Span\<T\> can be found at https://github.com/dotnet/coreclr/blob/SpanOfT/src/mscorlib/src/System/Span.cs. Through the magic of the "ref field", it can support slicing without requiring a strong pointer to the root of the sliced object. The GC is able to trace the interior pointer, keep the root object alive, and update the interior pointer if the object is relocated during a collection.
+The current work (still in progress) of fast Span\<T\> can be found at https://github.com/dotnet/coreclr/blob/master/src/mscorlib/src/System/Span.cs. Through the magic of the "ref field", it can support slicing without requiring a strong pointer to the root of the sliced object. The GC is able to trace the interior pointer, keep the root object alive, and update the interior pointer if the object is relocated during a collection.
 
 A different representation will be implemented for platforms that don’t support ref fields (interior pointers):
 ```c#
@@ -218,7 +218,7 @@ public struct Span<T> {
     internal int _length;
 }
 ```
-A prototype of this design can be found at https://github.com/dotnet/corefxlab/blob/master/src/System.Slices/System/Span.cs.
+The current work (still in progress) of this design can be found at https://github.com/dotnet/corefx/blob/master/src/System.Memory/src/System/Span.cs.
 In this representation, the Span\<T\>'s indexer will add the _pointer and the address of _relocatableObject before accessing items in the Span. This will make the accessor slower, but it will ensure that when the GC moves the sliced object (e.g. array) in memory, the indexer still accesses the right memory location. Note that if the Span wraps a managed object, the _pointer field will be the offset off the object's root to the objects data slice, but if the Span wraps a native memory, the _pointer will point to the memory and the _relocatableObject will be set to null (zero). In either case, adding the pointer and the address of the object (null == 0) results in the right "effective" address.
 
 ##Struct Tearing
